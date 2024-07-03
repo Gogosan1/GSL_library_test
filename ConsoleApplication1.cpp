@@ -9,13 +9,9 @@
 int func(double t, const double y[], double f[], void* params) {
     (void)(t); // Используется для подавления предупреждений о неиспользуемых параметрах
     // double lambda = *(double*)params;
-    f[0] = -2*y[0] + y[1];
-    f[1] = y[0] - 2*y[1] + y[2];
-    for (int i = 3; i <= 9; i++)
-    {
-        f[i - 1] = y[i-1] - 2*y[i] + y[i+1];
-    }
-    f[9] = y[8] - 2*y[9];
+    f[0] = (27 - 0.04*y[2] - 3.4*y[0])/0.0024;
+    f[1] = y[2];
+    f[2] =(200*y[0] - 0.02*y[2])/0.036;
     return GSL_SUCCESS;
 }
 
@@ -44,15 +40,15 @@ int main()
 
 void solve_and_write_on_file(const char *file_name, double lambda, const gsl_odeiv2_step_type * T)
 {
-    double y[10] = {9.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 , 0.0, 0.0, 0.0 }; // начальные условия
+    double y[3] = {0.0, 0.0, 0.0}; // начальные условия
 
-    double t0 = 0.0, tk = 20;  // начальная и конечная точки интегрирования
-    double hstart = 1e-2; // величина шага
+    double t0 = 0.0, tk = 0.1;  // начальная и конечная точки интегрирования
+    double hstart = 1e-3; // величина шага
     
     
     double minh = 1e-10, maxh = 0.0; // границы точности, левая и правая
 
-    gsl_odeiv2_system sys = { func, NULL, 10, NULL};
+    gsl_odeiv2_system sys = { func, NULL, 3, NULL};
     gsl_odeiv2_driver* d = gsl_odeiv2_driver_alloc_y_new(&sys, T, hstart, minh, maxh);
     FILE* file;
     errno_t err_rk4;
@@ -63,7 +59,7 @@ void solve_and_write_on_file(const char *file_name, double lambda, const gsl_ode
         return;
     }
 
-    fprintf(file, "t y1 y2 y3 y4 y5 y6 y7 y8 y9 y10\n");
+    fprintf(file, "t y1 y2 y3\n");
 
     // Цикл интегрирования с фиксированным шагом
     for (double ti = t0; ti <= tk; ti += hstart) {
@@ -73,7 +69,7 @@ void solve_and_write_on_file(const char *file_name, double lambda, const gsl_ode
             fprintf(stderr, "Ошибка при интегрировании: %s\n", gsl_strerror(status_rk4));
             break;
         }
-        fprintf(file, "%.10f %.10f %.10f %.10f %.10f %.10f %.10f %.10f %.10f %.10f %.10f\n", ti, y[0], y[1], y[2], y[3], y[4], y[5], y[6], y[7], y[8], y[9]);
+        fprintf(file, "%.10f %.10f %.10f %.10f\n", ti, y[0], y[1], y[2]);
     }
 
 
