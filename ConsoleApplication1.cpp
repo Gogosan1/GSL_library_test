@@ -9,10 +9,10 @@
 int func(double t, const double y[], double f[], void* params) {
     (void)(t); // Используется для подавления предупреждений о неиспользуемых параметрах
     // double lambda = *(double*)params;
-    f[0] = y[1];
-    f[1] = y[2];
-    f[2] = y[3];
-    f[3] = (y[0]*y[0] - sin(y[0]) - pow(100,4))*y[0] + ( y[1]*y[2]/(y[0]*y[0] + 1) - 4*pow(100,3))*y[1] + (1 - 6*pow(100,2))*y[2] + (10*exp(-y[3]*y[3]) - 400)*y[3] + 1;
+    f[0] = -y[0]+ y[1]* y[1] + y[2]* y[2] + y[3]* y[3];
+    f[1] = -10*y[1] + 10*(y[2] * y[2] + y[3] * y[3]);
+    f[2] = -40*y[2] + 40*y[3]*y[3];
+    f[3] = -100*y[3] + 2;
     return GSL_SUCCESS;
 }
 
@@ -41,10 +41,10 @@ int main()
 
 void solve_and_write_on_file(const char *file_name, double lambda, const gsl_odeiv2_step_type * T)
 {
-    double y[4] = { 0.0, 0.0, 0.0, 0.0}; // начальные условия
+    double y[4] = { 1.0, 1.0, 1.0, 1.0}; // начальные условия
 
-    double t0 = 0.0, tk = 1;  // начальная и конечная точки интегрирования
-    double hstart = 6.8e-3; // величина шага
+    double t0 = 0.0, tk = 20;  // начальная и конечная точки интегрирования
+    double hstart = 1e-2; // величина шага
     
     
     double minh = 1e-10, maxh = 0.0; // границы точности, левая и правая
