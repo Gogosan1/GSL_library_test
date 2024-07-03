@@ -13,13 +13,10 @@ int func(double t, const double y[], double f[], void* params) {
     (void)(t); // Используется для подавления предупреждений о неиспользуемых параметрах
     // double lambda = *(double*)params;
     
-    f[0] = -2 * y[0] + y[1];
-    f[1] = y[0] - 2 * y[1] + y[2];
-    for (int i = 3; i <= 49; i++)
+    for (int i = 1; i <= 10; i++)
     {
-        f[i - 1] = y[i - 2] - 2 * y[i-1] + y[i];
+        f[i - 1] = -pow(i,5)*y[i - 1];
     } 
-    f[49] = y[48] - 2 * y[49];
     return GSL_SUCCESS;
 }
 
@@ -48,15 +45,15 @@ int main()
 
 void solve_and_write_on_file(const char *file_name, double lambda, const gsl_odeiv2_step_type * T)
 {
-    double y[50] = {1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 ,0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 ,0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0}; // начальные условия
+    double y[10] = {1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0}; // начальные условия
 
-    double t0 = 0.0, tk = 20;  // начальная и конечная точки интегрирования
+    double t0 = 0.0, tk = 1;  // начальная и конечная точки интегрирования
     double hstart = 1e-2; // величина шага
     
     
     double minh = 1e-10, maxh = 0.0; // границы точности, левая и правая
 
-    gsl_odeiv2_system sys = { func, NULL, 50, NULL};
+    gsl_odeiv2_system sys = { func, NULL, 10, NULL};
     gsl_odeiv2_driver* d = gsl_odeiv2_driver_alloc_y_new(&sys, T, hstart, minh, maxh);
     FILE* file;
     errno_t err_rk4;
@@ -67,7 +64,7 @@ void solve_and_write_on_file(const char *file_name, double lambda, const gsl_ode
         return;
     }
 
-    fprintf(file, "t y1 y2 y3 y4 y5 y6 y7 y8 y9 y10 y11 y12 y13 y14 y15 y16 y17 y18 y19 y20 y21 y22 y23 y24 y25 y26 y27 y28 y29 y30 y31 y32 y33 y34 y35 y36 y37 y38 y39 y40 y41 y42 y43 y44 y45 y46 y47 y48 y49 y50\n");
+    fprintf(file, "t y1 y2 y3 y4 y5 y6 y7 y8 y9 y10\n");
 
     // Цикл интегрирования с фиксированным шагом
     for (double ti = t0; ti <= tk; ti += hstart) {
@@ -77,7 +74,7 @@ void solve_and_write_on_file(const char *file_name, double lambda, const gsl_ode
             fprintf(stderr, "Ошибка при интегрировании: %s\n", gsl_strerror(status_rk4));
             break;
         }
-        fprintf(file, "%.10f %.10f %.10f %.10f %.10f %.10f %.10f %.10f %.10f %.10f %.10f %.10f %.10f %.10f %.10f %.10f %.10f %.10f %.10f %.10f %.10f %.10f %.10f %.10f %.10f %.10f %.10f %.10f %.10f %.10f %.10f %.10f %.10f %.10f %.10f %.10f %.10f %.10f %.10f %.10f %.10f %.10f %.10f %.10f %.10f %.10f %.10f %.10f %.10f %.10f %.10f\n", ti, y[0], y[1], y[2], y[3], y[4], y[5], y[6], y[7], y[8], y[9], y[10], y[11], y[12], y[13], y[14], y[15], y[16], y[17], y[18], y[19], y[20], y[21], y[22], y[23], y[24], y[25], y[26], y[27], y[28], y[29], y[30], y[31], y[32], y[33], y[34], y[35], y[36], y[37], y[38], y[39], y[40], y[41], y[42], y[43], y[44], y[45], y[46], y[47], y[48], y[49]);
+        fprintf(file, "%.10f %.10f %.10f %.10f %.10f %.10f %.10f %.10f %.10f %.10f %.10f\n", ti, y[0], y[1], y[2], y[3], y[4], y[5], y[6], y[7], y[8], y[9]);
     }
 
 
