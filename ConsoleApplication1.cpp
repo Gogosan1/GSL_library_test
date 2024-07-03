@@ -9,8 +9,8 @@
 int func(double t, const double y[], double f[], void* params) {
     (void)(t); // Используется для подавления предупреждений о неиспользуемых параметрах
     double lambda = *(double*)params;
-    f[0] = y[0];
-    f[1] = lambda * y[1];
+    f[0] = y[1];
+    f[1] = lambda * y[0];
     return GSL_SUCCESS;
 }
 
