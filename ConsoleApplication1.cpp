@@ -9,7 +9,8 @@
 int func(double t, const double y[], double f[], void* params) {
     (void)(t); // Используется для подавления предупреждений о неиспользуемых параметрах
     double lambda = *(double*)params;
-    f[0] = lambda * y[0];
+    f[0] = y[0];
+    f[1] = lambda * y[1];
     return GSL_SUCCESS;
 }
 
@@ -29,7 +30,7 @@ int main()
     double lambda = -100.0; // Значение λ
     
    
-    double y[1] = { 1.0 }; // начальные условия
+    double y[2] = { 1.0, 1.0 }; // начальные условия
    
     double t = 0.0, t1 = 1.0;  // начальная и конечная точки интегрирования
     double h = 1e-2; // величина шага
@@ -39,9 +40,10 @@ int main()
      solve_by_rk4_and_write_on_file("rk4_output.csv", t, h, lambda, gsl_odeiv2_step_rk4, y, t1, minh, maxh);
 
      y[0] = { 1.0 };
+     y[1] = { 1.0 };
      t = 0.0, t1 = 1.0;  // начальная и конечная точки интегрирования
      h = 1e-2; // величина шага
-     minh = 1e-2, maxh = 0.0; // допустимые значения шага
+     minh = 1e-6, maxh = 0.0; // допустимые значения шага
 
 
     solve_by_rk4_and_write_on_file("adams_output.csv", t, h,lambda, gsl_odeiv2_step_msadams, y, t1, minh, maxh);
@@ -52,7 +54,7 @@ int main()
 
 void solve_by_rk4_and_write_on_file(const char *file_name, double t0, double hstart, double lambda, const gsl_odeiv2_step_type * T, double y[], double tk, double minh, double maxh)
 {
-    gsl_odeiv2_system sys = { func, NULL, 1, &lambda };
+    gsl_odeiv2_system sys = { func, NULL, 2, &lambda };
     gsl_odeiv2_driver* d = gsl_odeiv2_driver_alloc_y_new(&sys, T, hstart, minh, maxh);
     FILE* file;
     errno_t err_rk4;
@@ -63,7 +65,7 @@ void solve_by_rk4_and_write_on_file(const char *file_name, double t0, double hst
         return;
     }
 
-    fprintf(file, "t y\n");
+    fprintf(file, "t y1 y2\n");
 
     // Цикл интегрирования с фиксированным шагом для rk4
     for (double ti = t0; ti <= tk; ti += 1e-2) {
@@ -73,7 +75,7 @@ void solve_by_rk4_and_write_on_file(const char *file_name, double t0, double hst
             fprintf(stderr, "Ошибка при интегрировании: %s\n", gsl_strerror(status_rk4));
             break;
         }
-        fprintf(file, "%.10f %.10f\n", ti, y[0]);
+        fprintf(file, "%.10f %.10f %.10f\n", ti, y[0], y[1]);
     }
 
 
