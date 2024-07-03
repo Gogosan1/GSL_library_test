@@ -5,8 +5,8 @@
 // Функция системы ОДУ
 int func(double t, const double y[], double f[], void* params) {
     double* lambda = (double*)params;
-    f[0] = lambda[0] * y[0]; // dy1/dt = y1
-    f[1] = lambda[1] * y[1]; // dy2/dt = -100y2
+    f[0] = lambda[0] * y[1]; // dy1/dt = y1
+    f[1] = lambda[1] * y[0]; // dy2/dt = -100y2
     return GSL_SUCCESS;
 }
 
