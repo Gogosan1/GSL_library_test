@@ -49,7 +49,7 @@ int main()
 
 void solve_and_write_on_file(const char *file_name, double lambda, const gsl_odeiv2_step_type * T)
 {
-    double y[5] = {0.1, 1.0, 1.0, 0.5, 0.5}; // начальные условия
+    double y[5] = {1.0, 1.5, 1.5, 2.5, 2.5}; // начальные условия
 
     double t0 = 0.0, tk = 1;  // начальная и конечная точки интегрирования
     double hstart = 1e-5; // величина шага
