@@ -13,7 +13,7 @@ int func(double t, const double y[], double f[], void* params) {
     (void)(t); // Используется для подавления предупреждений о неиспользуемых параметрах
     // double lambda = *(double*)params;
     const double PI = acos(-1.0);
-    double mu0 = -100, mu1 = -1, v1 = 1, mu2 = -10000, v2 = 10;
+    double mu0 = -10000, mu1 = 1, v1 = 1, mu2 = -100, v2 = 1000;
 
 
     f[0] = mu0 * y[0];
@@ -49,7 +49,7 @@ int main()
 
 void solve_and_write_on_file(const char *file_name, double lambda, const gsl_odeiv2_step_type * T)
 {
-    double y[5] = {10.0, 11.0, 11.0, 111.0, 111.0}; // начальные условия
+    double y[5] = {100.0, 101.0, 101.0, 201.0, 201.0}; // начальные условия
 
     double t0 = 0.0, tk = 1;  // начальная и конечная точки интегрирования
     double hstart = 1e-5; // величина шага
