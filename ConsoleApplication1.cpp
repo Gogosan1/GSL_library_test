@@ -9,8 +9,8 @@
 int func(double t, const double y[], double f[], void* params) {
     (void)(t); // Используется для подавления предупреждений о неиспользуемых параметрах
     // double lambda = *(double*)params;
-    f[0] = 0.01 - (1 + (y[0] + 1000)*(y[0] + 1))*(0.01 + y[0] + y[1]);
-    f[1] = 0.01 - (1 + y[1]*y[1])*(0.01 + y[0] + y[1]);
+    f[0] = 2*(y[0] - y[0]*y[1]);
+    f[1] = -(y[1] - y[0]*y[1]);
     return GSL_SUCCESS;
 }
 
@@ -39,10 +39,10 @@ int main()
 
 void solve_and_write_on_file(const char *file_name, double lambda, const gsl_odeiv2_step_type * T)
 {
-    double y[2] = { 0.0, 0.0}; // начальные условия
+    double y[2] = { 1.0, 3.0}; // начальные условия
 
-    double t0 = 0.0, tk = 100.0;  // начальная и конечная точки интегрирования
-    double hstart = 1e-4; // величина шага
+    double t0 = 0.0, tk = 20;  // начальная и конечная точки интегрирования
+    double hstart = 2; // величина шага
     double minh = 1e-10, maxh = 0.0; // границы точности, левая и правая
 
     gsl_odeiv2_system sys = { func, NULL, 2, NULL};
@@ -59,7 +59,7 @@ void solve_and_write_on_file(const char *file_name, double lambda, const gsl_ode
     fprintf(file, "t y1 y2\n");
 
     // Цикл интегрирования с фиксированным шагом
-    for (double ti = t0; ti <= tk; ti += hstart*100) {
+    for (double ti = t0; ti <= tk; ti += hstart) {
         int status_rk4 = gsl_odeiv2_driver_apply(d, &t0, ti, y);
          
         if (status_rk4 != GSL_SUCCESS) {
