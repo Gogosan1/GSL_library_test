@@ -8,10 +8,11 @@
 // Функция системы ОДУ
 int func(double t, const double y[], double f[], void* params) {
     (void)(t); // Используется для подавления предупреждений о неиспользуемых параметрах
-   // double lambda = *(double*)params;
-    f[0] = -0.013*y[0] - 1000*y[0]*y[2];
-    f[1] = -2500*y[1]*y[2];
-    f[2] = -0.013 * y[0] - 1000 * y[0] * y[2] - 2500 * y[1] * y[2];
+    // double lambda = *(double*)params;
+    f[0] = y[2] - 100 * y[0] * y[1];
+    f[1] = y[2] + 2 * y[3] - 100 * y[0] * y[1] - 20000*y[1]*y[1];
+    f[2] = -y[2] + 100*y[0]*y[1];
+    f[3] = -y[3] + 10000 * y[1] * y[1];
     return GSL_SUCCESS;
 }
 
@@ -24,39 +25,29 @@ int jacobian(double t, const double y[], double* dfdy, double dfdt[], void* para
     return GSL_SUCCESS;
 }
 
-void solve_by_rk4_and_write_on_file(const char *file_name, double t0, double hstart, double lambda, const gsl_odeiv2_step_type* T, double y[], double tk, double minh, double maxh);
+void solve_and_write_on_file(const char *file_name,double lambda, const gsl_odeiv2_step_type* T);
 
 int main() 
 {
     double lambda = -100.0; // Значение λ
     
-   
-    double y[3] = { 1.0, 1.0, 0.0 }; // начальные условия
-   
-    double t = 0.0, t1 = 50.0;  // начальная и конечная точки интегрирования
-    double h = 2.9e-4; // величина шага
-    double minh = 1e-2, maxh = 0.0; // допустимые значения шага
-  
+     solve_and_write_on_file("rk4_output.csv", lambda, gsl_odeiv2_step_rk4);
 
-     solve_by_rk4_and_write_on_file("rk4_output.csv", t, h, lambda, gsl_odeiv2_step_rk4, y, t1, minh, maxh);
-
-     y[0] = { 1.0 };
-     y[1] = { 1.0 };
-     y[2] = { 0.0 };
-     t = 0.0, t1 = 50.0;  // начальная и конечная точки интегрирования
-     h = 2.9e-4; // величина шага
-     minh = 1e-8, maxh = 0.0; // допустимые значения шага, точность!!
-
-
-    solve_by_rk4_and_write_on_file("adams_output.csv", t, h,lambda, gsl_odeiv2_step_msadams, y, t1, minh, maxh);
+    solve_and_write_on_file("adams_output.csv", lambda, gsl_odeiv2_step_msadams);
     
     return 0;
 }
 
 
-void solve_by_rk4_and_write_on_file(const char *file_name, double t0, double hstart, double lambda, const gsl_odeiv2_step_type * T, double y[], double tk, double minh, double maxh)
+void solve_and_write_on_file(const char *file_name, double lambda, const gsl_odeiv2_step_type * T)
 {
-    gsl_odeiv2_system sys = { func, NULL, 3, NULL};
+    double y[4] = { 1.0, 1.0, 0.0, 0.0 }; // начальные условия
+
+    double t0 = 0.0, tk = 20.0;  // начальная и конечная точки интегрирования
+    double hstart = 2.5e-5; // величина шага
+    double minh = 1e-8, maxh = 0.0; // границы точности, левая и правая
+
+    gsl_odeiv2_system sys = { func, NULL, 4, NULL};
     gsl_odeiv2_driver* d = gsl_odeiv2_driver_alloc_y_new(&sys, T, hstart, minh, maxh);
     FILE* file;
     errno_t err_rk4;
@@ -67,7 +58,7 @@ void solve_by_rk4_and_write_on_file(const char *file_name, double t0, double hst
         return;
     }
 
-    fprintf(file, "t y1 y2 y3\n");
+    fprintf(file, "t y1 y2 y3 y4\n");
 
     // Цикл интегрирования с фиксированным шагом для rk4
     for (double ti = t0; ti <= tk; ti += 1e-2) {
@@ -77,7 +68,7 @@ void solve_by_rk4_and_write_on_file(const char *file_name, double t0, double hst
             fprintf(stderr, "Ошибка при интегрировании: %s\n", gsl_strerror(status_rk4));
             break;
         }
-        fprintf(file, "%.10f %.10f %.10f %.10f\n", ti, y[0], y[1], y[2]);
+        fprintf(file, "%.10f %.10f %.10f %.10f %.10f\n", ti, y[0], y[1], y[2], y[3]);
     }
 
 
