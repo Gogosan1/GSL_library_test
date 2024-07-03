@@ -9,13 +9,13 @@
 int func(double t, const double y[], double f[], void* params) {
     (void)(t); // Используется для подавления предупреждений о неиспользуемых параметрах
     // double lambda = *(double*)params;
-    f[0] = -y[0];
-    f[1] = y[0] - 2*y[1];
+    f[0] = -2*y[0] + y[1];
+    f[1] = y[0] - 2*y[1] + y[2];
     for (int i = 3; i <= 9; i++)
     {
-        f[i - 1] = (i - 1)*y[i - 1] - i*y[i];
+        f[i - 1] = y[i-1] - 2*y[i] + y[i+1];
     }
-    f[9] = 9*y[8];
+    f[9] = y[8] - 2*y[9];
     return GSL_SUCCESS;
 }
 
@@ -34,7 +34,7 @@ int main()
 {
     double lambda = -100.0; // Значение λ
     
-     solve_and_write_on_file("rk4_output.csv", lambda, gsl_odeiv2_step_rk4);
+    solve_and_write_on_file("rk4_output.csv", lambda, gsl_odeiv2_step_rk4);
 
     solve_and_write_on_file("adams_output.csv", lambda, gsl_odeiv2_step_msadams);
     
@@ -44,10 +44,10 @@ int main()
 
 void solve_and_write_on_file(const char *file_name, double lambda, const gsl_odeiv2_step_type * T)
 {
-    double y[10] = { 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 , 0.0, 0.0, 0.0 }; // начальные условия
+    double y[10] = {9.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 , 0.0, 0.0, 0.0 }; // начальные условия
 
     double t0 = 0.0, tk = 20;  // начальная и конечная точки интегрирования
-    double hstart = 5e-2; // величина шага
+    double hstart = 1e-2; // величина шага
     
     
     double minh = 1e-10, maxh = 0.0; // границы точности, левая и правая
