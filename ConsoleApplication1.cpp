@@ -1,56 +1,84 @@
-﻿#include <stdio.h>
+﻿#include <gsl/gsl_matrix.h>
+#include <gsl/gsl_odeiv2.h>
+#include <stdio.h>
+#include <math.h>
 #include <gsl/gsl_odeiv2.h>
 #include <gsl/gsl_errno.h>
 
 // Функция системы ОДУ
 int func(double t, const double y[], double f[], void* params) {
-    double* lambda = (double*)params;
-    f[0] = lambda[0] * y[1]; // dy1/dt = y1
-    f[1] = lambda[1] * y[0]; // dy2/dt = -100y2
+    (void)(t); // Используется для подавления предупреждений о неиспользуемых параметрах
+    double lambda = *(double*)params;
+    f[0] = lambda * y[0];
     return GSL_SUCCESS;
 }
 
-// Главная функция
-int main() {
-    double lambda[2] = { 1.0, -100.0 }; // Параметры системы: λ1 = 1, λ2 = -100
-    double y[2] = { 1.0, 1.0 };         // Начальные условия: y1(0) = 1, y2(0) = 1
-    double t = 0.0;                   // Начальное время
-    double t1 = 1.0;                  // Конечное время: tk = 1
-    double h = 1e-2;                  // Начальный шаг: h0 = 10^(-2)
+// Функция для вычисления якобиана системы dy/dt = -100y
+int jacobian(double t, const double y[], double* dfdy, double dfdt[], void* params) {
+    gsl_matrix_view dfdy_mat = gsl_matrix_view_array(dfdy, 1, 1);
+    gsl_matrix* m = &dfdy_mat.matrix;
+    gsl_matrix_set(m, 0, 0, -100.0); // Значение производной dy/dt по y
+    dfdt[0] = 0.0; // Поскольку производная не зависит от времени t
+    return GSL_SUCCESS;
+}
 
-    gsl_odeiv2_step* s = gsl_odeiv2_step_alloc(gsl_odeiv2_step_rk4, 2);
-    gsl_odeiv2_control* c = gsl_odeiv2_control_y_new(1e-10, 0.0);
-    gsl_odeiv2_evolve* e = gsl_odeiv2_evolve_alloc(2);
-    gsl_odeiv2_system sys = { func, NULL, 2, lambda };
+void solve_by_rk4_and_write_on_file(const char *file_name, double t0, double hstart, double lambda, const gsl_odeiv2_step_type* T, double y[], double tk, double minh, double maxh);
 
-    FILE* file_y1;
-    errno_t err;
+int main() 
+{
+    double lambda = -100.0; // Значение λ
+    
+   
+    double y[1] = { 1.0 }; // начальные условия
+   
+    double t = 0.0, t1 = 1.0;  // начальная и конечная точки интегрирования
+    double h = 1e-2; // величина шага
+    double minh = 1e-2, maxh = 0.0; // допустимые значения шага
+  
 
-    // Открытие файлов для записи результатов
-    err = fopen_s(&file_y1, "y1_results.csv", "w");
-    if (err != 0) {
-        fprintf(stderr, "Не удалось открыть файл y1_results.csv.\n");
-        return -1;
+     solve_by_rk4_and_write_on_file("rk4_output.csv", t, h, lambda, gsl_odeiv2_step_rk4, y, t1, minh, maxh);
+
+     y[0] = { 1.0 };
+     t = 0.0, t1 = 1.0;  // начальная и конечная точки интегрирования
+     h = 1e-2; // величина шага
+     minh = 1e-2, maxh = 0.0; // допустимые значения шага
+
+
+    solve_by_rk4_and_write_on_file("adams_output.csv", t, h,lambda, gsl_odeiv2_step_msadams, y, t1, minh, maxh);
+    
+    return 0;
+}
+
+
+void solve_by_rk4_and_write_on_file(const char *file_name, double t0, double hstart, double lambda, const gsl_odeiv2_step_type * T, double y[], double tk, double minh, double maxh)
+{
+    gsl_odeiv2_system sys = { func, NULL, 1, &lambda };
+    gsl_odeiv2_driver* d = gsl_odeiv2_driver_alloc_y_new(&sys, T, hstart, minh, maxh);
+    FILE* file;
+    errno_t err_rk4;
+    err_rk4 = fopen_s(&file, file_name, "w");
+
+    if (err_rk4 != 0) {
+        fprintf(stderr, "Не удалось открыть файлы.\n");
+        return;
     }
 
-    // Процесс интегрирования
-    while (t < t1) {
-        int status = gsl_odeiv2_evolve_apply(e, c, s, &sys, &t, t1, &h, y);
-        if (status != GSL_SUCCESS) {
-            fprintf(stderr, "Ошибка при интегрировании: %d\n", status);
+    fprintf(file, "t y\n");
+
+    // Цикл интегрирования с фиксированным шагом для rk4
+    for (double ti = t0; ti <= tk; ti += 1e-2) {
+        int status_rk4 = gsl_odeiv2_driver_apply(d, &t0, ti, y);
+         
+        if (status_rk4 != GSL_SUCCESS) {
+            fprintf(stderr, "Ошибка при интегрировании: %s\n", gsl_strerror(status_rk4));
             break;
         }
-        // Запись результатов с точностью до 10 знаков после запятой
-        fprintf(file_y1, "%.10f %.10f %.10f %.10f\n", t, y[0], y[1], h);
+        fprintf(file, "%.10f %.10f\n", ti, y[0]);
     }
 
+
     // Закрытие файлов
-    fclose(file_y1);
-
-    // Освобождение ресурсов
-    gsl_odeiv2_evolve_free(e);
-    gsl_odeiv2_control_free(c);
-    gsl_odeiv2_step_free(s);
-
-    return 0;
+    fclose(file);
+    // Освобождение памяти
+    gsl_odeiv2_driver_free(d);
 }
