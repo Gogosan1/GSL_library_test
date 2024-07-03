@@ -10,7 +10,9 @@ int func(double t, const double y[], double f[], void* params) {
     (void)(t); // Используется для подавления предупреждений о неиспользуемых параметрах
     // double lambda = *(double*)params;
     f[0] = y[1];
-    f[1] = (1 - y[0]*y[0])*y[1] - y[0];
+    f[1] = y[2];
+    f[2] = y[3];
+    f[3] = (y[0]*y[0] - sin(y[0]) - pow(100,4))*y[0] + ( y[1]*y[2]/(y[0]*y[0] + 1) - 4*pow(100,3))*y[1] + (1 - 6*pow(100,2))*y[2] + (10*exp(-y[3]*y[3]) - 400)*y[3] + 1;
     return GSL_SUCCESS;
 }
 
@@ -39,15 +41,15 @@ int main()
 
 void solve_and_write_on_file(const char *file_name, double lambda, const gsl_odeiv2_step_type * T)
 {
-    double y[2] = { 2.0, 0.0}; // начальные условия
+    double y[4] = { 0.0, 0.0, 0.0, 0.0}; // начальные условия
 
-    double t0 = 0.0, tk = 20;  // начальная и конечная точки интегрирования
-    double hstart = 2e-2; // величина шага
+    double t0 = 0.0, tk = 1;  // начальная и конечная точки интегрирования
+    double hstart = 6.8e-3; // величина шага
     
     
     double minh = 1e-10, maxh = 0.0; // границы точности, левая и правая
 
-    gsl_odeiv2_system sys = { func, NULL, 2, NULL};
+    gsl_odeiv2_system sys = { func, NULL, 4, NULL};
     gsl_odeiv2_driver* d = gsl_odeiv2_driver_alloc_y_new(&sys, T, hstart, minh, maxh);
     FILE* file;
     errno_t err_rk4;
@@ -58,7 +60,7 @@ void solve_and_write_on_file(const char *file_name, double lambda, const gsl_ode
         return;
     }
 
-    fprintf(file, "t y1 y2\n");
+    fprintf(file, "t y1 y2 y3 y4\n");
 
     // Цикл интегрирования с фиксированным шагом
     for (double ti = t0; ti <= tk; ti += hstart) {
@@ -68,7 +70,7 @@ void solve_and_write_on_file(const char *file_name, double lambda, const gsl_ode
             fprintf(stderr, "Ошибка при интегрировании: %s\n", gsl_strerror(status_rk4));
             break;
         }
-        fprintf(file, "%.10f %.10f %.10f\n", ti, y[0], y[1]);
+        fprintf(file, "%.10f %.10f %.10f %.10f %.10f\n", ti, y[0], y[1], y[2], y[3]);
     }
 
 
