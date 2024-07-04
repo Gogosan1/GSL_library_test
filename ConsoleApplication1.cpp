@@ -4,16 +4,20 @@
 #include <math.h>
 #include <gsl/gsl_odeiv2.h>
 #include <gsl/gsl_errno.h>
+#include <locale.h>
 
 // Функция системы ОДУ
 int func(double t, const double y[], double f[], void* params) {
     (void)(t); // Используется для подавления предупреждений о неиспользуемых параметрах
     // double lambda = *(double*)params;
+    double a = 60, b = -50, c = 0.1;
+    double lambda1 = a + 1.0 / (t + 1);
+    double lambda2 = b + 2.0 / (t + 1);
+    double lambda3 = c + 3.0 / (t + 1);
 
-    f[0] = -30.0 * y[0] * y[1] / (41.0 + y[0]);
-    f[1] = 1.5 * y[1] * y[2] / ((0.002 + y[2]) * (0.23 + y[2]) * (23.0 + y[3]));
-    f[2] = -f[0] - 71.0 * f[1] - (265.0 * y[1] * y[2]) / (3.1 + y[2]);
-    f[3] = (265.0 * y[1] * y[2]) / (3.1 + y[2]) - (1263.0 * y[1] * y[2]) / ((14.4 + y[3]) * (12.3 + y[3]));
+    f[0] = lambda1 * y[0] + 1.0 / pow(t + 1, 4) * (b - a - 3.0 / (t + 1)) * y[1];
+    f[1] = lambda2 * y[1];
+    f[2] = 1.0 / pow(t + 1, 3) * (b - c - 4.0 / (t + 1)) * y[1] + lambda3 * y[2];
 
     return GSL_SUCCESS;
 }
@@ -31,7 +35,8 @@ void solve_and_write_on_file(const char *file_name, const gsl_odeiv2_step_type* 
 
 int main() 
 {
-    
+    setlocale(LC_ALL, "");
+
     solve_and_write_on_file("rk4_output.csv", gsl_odeiv2_step_rk4);
 
     solve_and_write_on_file("adams_output.csv", gsl_odeiv2_step_msadams);
@@ -42,15 +47,15 @@ int main()
 
 void solve_and_write_on_file(const char *file_name, const gsl_odeiv2_step_type * T)
 {
-    double y[4] = { 1230.0, 1.03, 0.0, 0.0}; // начальные условия
+    double y[3] = { 2.0, 1.0, 2.0}; // начальные условия
 
-    double t0 = 0.0, tk = 10;  // начальная и конечная точки интегрирования
-    double hstart = 1e-1; // величина шага
+    double t0 = 0.0, tk = 0.5;  // начальная и конечная точки интегрирования
+    double hstart = 5e-3; // величина шага
     
     
     double minh = 1e-10, maxh = 0.0; // границы точности, левая и правая
 
-    gsl_odeiv2_system sys = { func, NULL, 4, NULL};
+    gsl_odeiv2_system sys = { func, NULL, 3, NULL};
     gsl_odeiv2_driver* d = gsl_odeiv2_driver_alloc_y_new(&sys, T, hstart, minh, maxh);
     FILE* file;
     errno_t err_rk4;
@@ -61,7 +66,7 @@ void solve_and_write_on_file(const char *file_name, const gsl_odeiv2_step_type *
         return;
     }
 
-    fprintf(file, "t y1 y2 y3 y4\n");
+    fprintf(file, "t y1 y2 y3\n");
 
     // Цикл интегрирования с фиксированным шагом
     for (double ti = t0; ti <= tk; ti += hstart) {
@@ -71,7 +76,7 @@ void solve_and_write_on_file(const char *file_name, const gsl_odeiv2_step_type *
             fprintf(stderr, "Ошибка при интегрировании: %s\n", gsl_strerror(status_rk4));
             break;
         }
-        fprintf(file, "%.10f %.10f %.10f %.10f %.10f\n", ti, y[0], y[1], y[2], y[3]);
+        fprintf(file, "%.10f %.10f %.10f %.10f\n", ti, y[0], y[1], y[2]);
     }
 
 
