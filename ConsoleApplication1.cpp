@@ -1,44 +1,46 @@
 ﻿#include <stdio.h>
-#include <gsl/gsl_odeiv2.h>
 #include <gsl/gsl_errno.h>
+#include <gsl/gsl_matrix.h>
+#include <gsl/gsl_odeiv2.h>
 
-/* Система дифференциальных уравнений */
+// Система дифференциальных уравнений
 int func(double t, const double y[], double f[], void* params) {
-    double lambda1 = *(double*)params;
-    double lambda2 = -1; // Значение lambda2 изменяется в зависимости от задачи
-    double lambda3 = 3e7; // Значение lambda3 изменяется в зависимости от задачи
+    double lambda2 = *(double*)params;
+    double lambda3 = *((double*)params + 1);
 
-    f[0] = -y[0] + lambda1 * y[2] * (1 - y[0]);
-    f[1] = -10 * y[1] + lambda2 * y[2] * (1 - y[1]);
+    f[0] = -y[0] + 1e8 * y[2] * (1 - y[0]);
+    f[1] = -10 * y[1] + 3e7 * y[2] * (1 - y[1]);
     f[2] = -f[0] - f[1];
 
     return GSL_SUCCESS;
 }
 
 int main() {
-    const gsl_odeiv2_step_type* T = gsl_odeiv2_step_msadams; // Или другой метод
-    gsl_odeiv2_step* s = gsl_odeiv2_step_alloc(T, 3);
-    gsl_odeiv2_control* c = gsl_odeiv2_control_y_new(1e-10, 0.0);
-    gsl_odeiv2_evolve* e = gsl_odeiv2_evolve_alloc(3);
+    // Параметры lambda2 и lambda3
+    double lambda_params[] = { -1, -3e7 }; // Начальные значения, измените их по вашим требованиям
 
-    double y[3] = { 1.0, 0.0, 0.0 }; // Начальные условия
-    double params = 1e8;
-    gsl_odeiv2_system sys = { func, NULL, 3, &params };
+    gsl_odeiv2_system sys = { func, NULL, 3, lambda_params };
 
-    double t = 0.0, t1 = 1.0;
-    double h = 3.3e-8;
+    gsl_odeiv2_driver* d = gsl_odeiv2_driver_alloc_y_new(
+        &sys, gsl_odeiv2_step_msadams, 3.3e-8, 1e-10, 0.0);
+
+    double y[3] = { 1, 0, 0 }; // Начальные условия
 
     FILE* file;
-    fopen_s(&file, "results.csv", "w");
-    if (file == NULL) {
+    errno_t err;
+
+    // Открытие файла с использованием fopen_s
+    err = fopen_s(&file, "results.csv", "w");
+    if (err != 0) {
         fprintf(stderr, "Не удалось открыть файл.\n");
         return -1;
     }
 
     fprintf(file, "t y1 y2 y3\n");
 
-    while (t < t1) {
-        int status = gsl_odeiv2_evolve_apply(e, c, s, &sys, &t, t1, &h, y);
+    // Запись результатов в файл
+    for (double t = 0; t <= 1; t += 3.3e-4) {
+        int status = gsl_odeiv2_driver_apply(d, &t, t + 3.3e-8, y);
 
         if (status != GSL_SUCCESS) {
             fprintf(stderr, "Ошибка при интегрировании: %s\n", gsl_strerror(status));
@@ -48,10 +50,9 @@ int main() {
         fprintf(file, "%.10f %.10f %.10f %.10f\n", t, y[0], y[1], y[2]);
     }
 
+    // Закрытие файла
     fclose(file);
-    gsl_odeiv2_evolve_free(e);
-    gsl_odeiv2_control_free(c);
-    gsl_odeiv2_step_free(s);
+    gsl_odeiv2_driver_free(d);
 
     return 0;
 }
