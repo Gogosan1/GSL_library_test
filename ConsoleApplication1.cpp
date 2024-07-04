@@ -14,26 +14,26 @@ int main() {
     double y[2] = { 0.671396707, 0.0955400515 };
     double t = 0.0;
     double t1 = 20.0;
-    double h = 2e-2;
+    double h = 1e-2; // Уменьшенный начальный шаг интегрирования
 
-    // Инициализация метода Рунге-Кутты 4-го порядка
-    const gsl_odeiv2_step_type* T = gsl_odeiv2_step_rk4;
+    // Инициализация метода Адамса
+    const gsl_odeiv2_step_type* T = gsl_odeiv2_step_rk8pd;
     gsl_odeiv2_step* s = gsl_odeiv2_step_alloc(T, 2);
-    gsl_odeiv2_control* c = gsl_odeiv2_control_y_new(1e-10, 0.0);
+    gsl_odeiv2_control* c = gsl_odeiv2_control_y_new(1e-10, 0.0); // Установка точности
     gsl_odeiv2_evolve* e = gsl_odeiv2_evolve_alloc(2);
     gsl_odeiv2_system sys = { func, NULL, 2, NULL };
 
     // Открытие файла для записи результатов
     FILE* file;
     errno_t err;
-    err = fopen_s(&file, "results.csv", "w");
-    
+
+    err = fopen_s(&file, "results_adams.csv", "w");
     if (err != 0) {
         printf("Ошибка при открытии файла.\n");
         return -1;
     }
 
-    fprintf(file,"t y1 y2\n");
+    fprintf(file, "t y1 y2\n");
     // Процесс интегрирования
     while (t < t1) {
         int status = gsl_odeiv2_evolve_apply(e, c, s, &sys, &t, t1, &h, y);
