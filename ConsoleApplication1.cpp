@@ -2,57 +2,57 @@
 #include <gsl/gsl_odeiv2.h>
 #include <gsl/gsl_errno.h>
 
-// Определение системы дифференциальных уравнений
+/* Система дифференциальных уравнений */
 int func(double t, const double y[], double f[], void* params) {
-    f[0] = y[1];
-    f[1] = -(y[1] / (t + 1) + (1 - 0.25 / ((t + 1) * (t + 1))) * y[0]);
+    double lambda1 = *(double*)params;
+    double lambda2 = -1; // Значение lambda2 изменяется в зависимости от задачи
+    double lambda3 = 3e7; // Значение lambda3 изменяется в зависимости от задачи
+
+    f[0] = -y[0] + lambda1 * y[2] * (1 - y[0]);
+    f[1] = -10 * y[1] + lambda2 * y[2] * (1 - y[1]);
+    f[2] = -f[0] - f[1];
+
     return GSL_SUCCESS;
 }
 
 int main() {
-    // Начальные условия
-    double y[2] = { 0.671396707, 0.0955400515 };
-    double t = 0.0;
-    double t1 = 20.0;
-    double h = 1e-2; // Уменьшенный начальный шаг интегрирования
+    const gsl_odeiv2_step_type* T = gsl_odeiv2_step_msadams; // Или другой метод
+    gsl_odeiv2_step* s = gsl_odeiv2_step_alloc(T, 3);
+    gsl_odeiv2_control* c = gsl_odeiv2_control_y_new(1e-10, 0.0);
+    gsl_odeiv2_evolve* e = gsl_odeiv2_evolve_alloc(3);
 
-    // Инициализация метода Адамса
-    const gsl_odeiv2_step_type* T = gsl_odeiv2_step_rk8pd;
-    gsl_odeiv2_step* s = gsl_odeiv2_step_alloc(T, 2);
-    gsl_odeiv2_control* c = gsl_odeiv2_control_y_new(1e-10, 0.0); // Установка точности
-    gsl_odeiv2_evolve* e = gsl_odeiv2_evolve_alloc(2);
-    gsl_odeiv2_system sys = { func, NULL, 2, NULL };
+    double y[3] = { 1.0, 0.0, 0.0 }; // Начальные условия
+    double params = 1e8;
+    gsl_odeiv2_system sys = { func, NULL, 3, &params };
 
-    // Открытие файла для записи результатов
+    double t = 0.0, t1 = 1.0;
+    double h = 3.3e-8;
+
     FILE* file;
-    errno_t err;
-
-    err = fopen_s(&file, "results_adams.csv", "w");
-    if (err != 0) {
-        printf("Ошибка при открытии файла.\n");
+    fopen_s(&file, "results.csv", "w");
+    if (file == NULL) {
+        fprintf(stderr, "Не удалось открыть файл.\n");
         return -1;
     }
 
-    fprintf(file, "t y1 y2\n");
-    // Процесс интегрирования
+    fprintf(file, "t y1 y2 y3\n");
+
     while (t < t1) {
         int status = gsl_odeiv2_evolve_apply(e, c, s, &sys, &t, t1, &h, y);
 
         if (status != GSL_SUCCESS) {
-            printf("Ошибка: статус = %d\n", status);
+            fprintf(stderr, "Ошибка при интегрировании: %s\n", gsl_strerror(status));
             break;
         }
 
-        // Запись результатов в файл с точностью до 10 знаков после запятой
-        fprintf(file, "%.10f %.10f %.10f\n", t, y[0], y[1]);
+        fprintf(file, "%.10f %.10f %.10f %.10f\n", t, y[0], y[1], y[2]);
     }
 
-    // Закрытие файла
     fclose(file);
-
     gsl_odeiv2_evolve_free(e);
     gsl_odeiv2_control_free(c);
     gsl_odeiv2_step_free(s);
+
     return 0;
 }
 
