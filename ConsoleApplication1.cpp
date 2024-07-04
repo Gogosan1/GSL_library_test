@@ -9,14 +9,10 @@
 int func(double t, const double y[], double f[], void* params) {
     (void)(t); // Используется для подавления предупреждений о неиспользуемых параметрах
     // double lambda = *(double*)params;
-
-    f[0] = -1800 * y[0] + 900 * y[1];
-    for (int i = 2; i <= 8; i++)
-    {
-        f[i - 1] = y[i - 2] - 0.2 * y[i - 1] + y[i];
-    }
-    f[8] = 1000 * y[7] - 2000 * y[8] + 1000;
-
+    f[0] = -y[0] + pow(10, 8) * y[2] * (1 - y[0]);
+    f[1] = -10 * y[1] + 3 * pow(10, 7) * y[2] * (1 - y[1]);
+    f[2] = -f[0] - f[1];
+   
     return GSL_SUCCESS;
 }
 
@@ -29,31 +25,30 @@ int jacobian(double t, const double y[], double* dfdy, double dfdt[], void* para
     return GSL_SUCCESS;
 }
 
-void solve_and_write_on_file(const char *file_name,double lambda, const gsl_odeiv2_step_type* T);
+void solve_and_write_on_file(const char *file_name, const gsl_odeiv2_step_type* T);
 
 int main() 
 {
-    double lambda = -100.0; // Значение λ
     
-     solve_and_write_on_file("rk4_output.csv", lambda, gsl_odeiv2_step_rk4);
+    solve_and_write_on_file("rk4_output.csv", gsl_odeiv2_step_rk4);
 
-    solve_and_write_on_file("adams_output.csv", lambda, gsl_odeiv2_step_msadams);
+    solve_and_write_on_file("adams_output.csv", gsl_odeiv2_step_msadams);
     
     return 0;
 }
 
 
-void solve_and_write_on_file(const char *file_name, double lambda, const gsl_odeiv2_step_type * T)
+void solve_and_write_on_file(const char *file_name, const gsl_odeiv2_step_type * T)
 {
-    double y[9] = { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 }; // начальные условия
+    double y[3] = { 1.0, 0.0, 0.0}; // начальные условия
 
     double t0 = 0.0, tk = 1;  // начальная и конечная точки интегрирования
-    double hstart = 5e-4; // величина шага
+    double hstart = 3.3e-1; // величина шага
     
     
     double minh = 1e-10, maxh = 0.0; // границы точности, левая и правая
 
-    gsl_odeiv2_system sys = { func, NULL, 9, NULL};
+    gsl_odeiv2_system sys = { func, NULL, 3, NULL};
     gsl_odeiv2_driver* d = gsl_odeiv2_driver_alloc_y_new(&sys, T, hstart, minh, maxh);
     FILE* file;
     errno_t err_rk4;
@@ -64,7 +59,7 @@ void solve_and_write_on_file(const char *file_name, double lambda, const gsl_ode
         return;
     }
 
-    fprintf(file, "t y1 y2 y3 y4 y5 y6 y7 y8 y9\n");
+    fprintf(file, "t y1 y2 y3\n");
 
     // Цикл интегрирования с фиксированным шагом
     for (double ti = t0; ti <= tk; ti += hstart) {
@@ -74,7 +69,7 @@ void solve_and_write_on_file(const char *file_name, double lambda, const gsl_ode
             fprintf(stderr, "Ошибка при интегрировании: %s\n", gsl_strerror(status_rk4));
             break;
         }
-        fprintf(file, "%.10f %.10f %.10f %.10f %.10f %.10f %.10f %.10f %.10f %.10f\n", ti, y[0], y[1], y[2], y[3], y[4], y[5], y[6], y[7], y[8]);
+        fprintf(file, "%.10f %.10f %.10f %.10f\n", ti, y[0], y[1], y[2]);
     }
 
 
